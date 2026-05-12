@@ -266,7 +266,10 @@ function setupClaudeExporter() {
     }
 
     const markdown = buildMarkdown(timestamps);
-    const filename = `${getConversationTitle()}.md`;
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const prefix = `Claude_Web_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}_`;
+    const filename = `${prefix}${getConversationTitle()}.md`;
     downloadMarkdown(markdown, filename);
 
     statusDiv.textContent = `✅ Downloaded: ${filename}`;
