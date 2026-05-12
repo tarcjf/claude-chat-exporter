@@ -40,6 +40,20 @@ Instead of manually parsing HTML and converting to markdown (which misses tables
 
 ## Usage
 
+You can run the exporter either as a one-click **bookmarklet** (recommended, no install) or by pasting the source into the browser console.
+
+### Option A: Bookmarklet (recommended)
+
+1. Open `dist-bookmarklet.js` and copy its entire single-line contents (starts with `javascript:`).
+2. Create a new bookmark in your browser (e.g. right-click the bookmarks bar → Add Page / Add Bookmark).
+3. Set the **Name** to anything you like (e.g. `Export Claude Chat`) and paste the copied string into the **URL** field. Save.
+4. Open the conversation you want to export on claude.ai, then click the bookmark.
+5. A progress indicator appears in the top-right; when it finishes you'll get a `{conversation-title}.md` download.
+
+> Some browsers strip the leading `javascript:` when pasting into the address bar for security. Pasting into the bookmark URL field is fine — the prefix is preserved there.
+
+### Option B: Developer console
+
 1. Open your conversation with Claude in your web browser.
 2. Open the browser's developer console:
    - Chrome/Edge: Press F12 or Ctrl+Shift+J (Windows/Linux) or Cmd+Option+J (Mac)
@@ -48,6 +62,16 @@ Instead of manually parsing HTML and converting to markdown (which misses tables
 3. Copy the entire script in the file `claude-chat-exporter.js` and paste it into the console.
 4. Press Enter to run the script.
 5. The script will show a progress indicator and will automatically generate and download a file named `{conversation-title}.md` (auto-generated with `conversation-title` being the Claude conversation title).
+
+### Rebuilding the bookmarklet
+
+`dist-bookmarklet.js` is generated from `claude-chat-exporter.js`. If you modify the source, regenerate it with:
+
+```sh
+make
+```
+
+The build requires only `python3` (stdlib only — no `pip install` needed). See `Makefile` for details.
 
 ## Complete Element Support
 
