@@ -15,6 +15,35 @@ function setupClaudeExporter() {
     URL.revokeObjectURL(a.href);
   }
 
+  // Copy text to clipboard. Tries the async Clipboard API first (requires a
+  // secure context + document focus), then falls back to the legacy
+  // execCommand approach which works more broadly when run from a bookmarklet
+  // or console where focus can be finicky.
+  async function copyToClipboard(content) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(content);
+        return true;
+      }
+    } catch (e) {
+      // fall through to legacy method
+    }
+
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = content;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Format ISO timestamp to readable format
   function formatTimestamp(isoString) {
     if (!isoString) return null;
@@ -154,15 +183,43 @@ function setupClaudeExporter() {
         throw new Error('No messages found in API response');
       }
 
-      const now = new Date();
-      const pad = (n) => String(n).padStart(2, '0');
-      const prefix = `Claude_Web_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}_`;
-      const filename = `${prefix}${getConversationTitle(data)}.md`;
-      downloadMarkdown(markdown, filename);
+      // Ask the user how they want the export delivered.
+      // OK (default / Enter) = copy to clipboard, Cancel = download file.
+      const wantClipboard = window.confirm(
+        `Export ready: ${humanCount} human / ${claudeCount} Claude messages.\n\n` +
+        `OK = Copy to clipboard (default)\n` +
+        `Cancel = Download as .md file`
+      );
 
-      statusDiv.textContent = `✅ ${humanCount}H/${claudeCount}C → ${filename}`;
-      statusDiv.style.background = '#4CAF50';
-      console.log(`🎉 Export complete: ${humanCount} human, ${claudeCount} claude messages → ${filename}`);
+      if (wantClipboard) {
+        statusDiv.textContent = 'Copying to clipboard...';
+        const ok = await copyToClipboard(markdown);
+        if (ok) {
+          statusDiv.textContent = `✅ Copied ${humanCount}H/${claudeCount}C to clipboard`;
+          statusDiv.style.background = '#4CAF50';
+          console.log(`🎉 Export complete: ${humanCount} human, ${claudeCount} claude messages → clipboard`);
+        } else {
+          // Clipboard failed - fall back to download so the user isn't stuck.
+          statusDiv.textContent = 'Clipboard failed, downloading instead...';
+          const now = new Date();
+          const pad = (n) => String(n).padStart(2, '0');
+          const prefix = `Claude_Web_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}_`;
+          const filename = `${prefix}${getConversationTitle(data)}.md`;
+          downloadMarkdown(markdown, filename);
+          statusDiv.textContent = `✅ ${humanCount}H/${claudeCount}C → ${filename}`;
+          statusDiv.style.background = '#4CAF50';
+        }
+      } else {
+        statusDiv.textContent = 'Preparing download...';
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const prefix = `Claude_Web_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}_`;
+        const filename = `${prefix}${getConversationTitle(data)}.md`;
+        downloadMarkdown(markdown, filename);
+        statusDiv.textContent = `✅ ${humanCount}H/${claudeCount}C → ${filename}`;
+        statusDiv.style.background = '#4CAF50';
+        console.log(`🎉 Export complete: ${humanCount} human, ${claudeCount} claude messages → ${filename}`);
+      }
     } catch (error) {
       statusDiv.textContent = `Error: ${error.message}`;
       statusDiv.style.background = '#f44336';
